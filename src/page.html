@@ -145,6 +145,12 @@
             <button class="checkin-pill" id="checkinBtn" type="button">{{ui.checkin}}</button>
           </div>
 
+          <div class="hero-mobile-photo">
+            <span class="hero-sticker">{{ui.heroSticker}}</span>
+            <img class="img-blue" src="/images/burger.jpg" alt="{{ui.heroPhotoLabel}}" width="900" height="675" draggable="false">
+            <span class="hero-photo-label">{{ui.heroPhotoLabel}}</span>
+          </div>
+
           <div class="promo-grid">
             <div class="promo promo-coral">
               <strong>{{ui.promo1Title}}</strong>
@@ -169,17 +175,11 @@
           <span class="hero-scooter" aria-hidden="true">🛵</span>
           <div class="hero-photo">
             <span class="hero-sticker">{{ui.heroSticker}}</span>
-            <div class="hero-split">
-              <div class="hero-half">
-                <img src="/images/burger.jpg" alt="{{ui.heroPhotoLabel}}" width="900" height="675">
-                <span class="half-tag">{{ui.beforeLabel}}</span>
-              </div>
-              <div class="hero-half after">
-                <img src="/images/burger.jpg" alt="" class="img-blue" width="900" height="675">
-                <span class="half-tag">{{ui.afterLabel}}</span>
-              </div>
+            <div class="hero-single">
+              <img id="heroFood" class="img-blue" src="/images/burger.jpg" alt="{{ui.heroPhotoLabel}}" width="900" height="675" draggable="false">
+              <button class="hero-peek" id="heroPeek" type="button">{{ui.peek}}</button>
+              <span class="hero-photo-label">{{ui.heroPhotoLabel}}</span>
             </div>
-            <span class="hero-photo-label">{{ui.heroPhotoLabel}}</span>
           </div>
         </div>
       </div>

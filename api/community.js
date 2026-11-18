@@ -4,20 +4,40 @@
 import { createHash } from 'node:crypto';
 
 const PREFIX = 'anticrave:';
-const DISH_IDS = ['tteokbokki', 'burger', 'chicken', 'sushi', 'ramen', 'pizza', 'fries', 'milktea'];
+const DISH_IDS = [
+  'tteokbokki', 'kimchirice', 'sushi', 'ramen', 'okonomiyaki', 'burger', 'chicken', 'fries',
+  'pizza', 'carbonara', 'dumplings', 'friedrice', 'tacos', 'burrito', 'butterchicken', 'padthai',
+  'pho', 'shawarma', 'paella', 'croissant', 'milktea', 'thaitea', 'icecream', 'donut',
+];
 const SIDES = new Set(['quit', 'hungry']);
 
 // Small demo baseline so a brand-new poll does not look broken.
 // Set every number to 0 to run a fully organic board.
 const SEED = {
   tteokbokki: { quit: 132, hungry: 11 },
-  burger: { quit: 148, hungry: 16 },
-  chicken: { quit: 197, hungry: 18 },
+  kimchirice: { quit: 158, hungry: 13 },
   sushi: { quit: 109, hungry: 9 },
   ramen: { quit: 175, hungry: 19 },
-  pizza: { quit: 121, hungry: 21 },
+  okonomiyaki: { quit: 145, hungry: 11 },
+  burger: { quit: 148, hungry: 16 },
+  chicken: { quit: 197, hungry: 18 },
   fries: { quit: 96, hungry: 14 },
+  pizza: { quit: 121, hungry: 21 },
+  carbonara: { quit: 176, hungry: 12 },
+  dumplings: { quit: 140, hungry: 12 },
+  friedrice: { quit: 125, hungry: 15 },
+  tacos: { quit: 156, hungry: 18 },
+  burrito: { quit: 118, hungry: 20 },
+  butterchicken: { quit: 180, hungry: 14 },
+  padthai: { quit: 142, hungry: 16 },
+  pho: { quit: 134, hungry: 9 },
+  shawarma: { quit: 168, hungry: 13 },
+  paella: { quit: 121, hungry: 10 },
+  croissant: { quit: 99, hungry: 7 },
   milktea: { quit: 168, hungry: 12 },
+  thaitea: { quit: 164, hungry: 8 },
+  icecream: { quit: 172, hungry: 22 },
+  donut: { quit: 138, hungry: 19 },
 };
 
 const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;

@@ -888,14 +888,44 @@
     japanese: { emoji: '🇯🇵', labelKey: 'categoryJapanese' },
     american: { emoji: '🇺🇸', labelKey: 'categoryAmerican' },
     italian: { emoji: '🇮🇹', labelKey: 'categoryItalian' },
+    chinese: { emoji: '🇨🇳', labelKey: 'categoryChinese' },
+    mexican: { emoji: '🇲🇽', labelKey: 'categoryMexican' },
+    indian: { emoji: '🇮🇳', labelKey: 'categoryIndian' },
+    thai: { emoji: '🇹🇭', labelKey: 'categoryThai' },
+    vietnamese: { emoji: '🇻🇳', labelKey: 'categoryVietnamese' },
+    middleeastern: { emoji: '🇱🇧', labelKey: 'categoryMiddleEastern' },
+    spanish: { emoji: '🇪🇸', labelKey: 'categorySpanish' },
+    french: { emoji: '🇫🇷', labelKey: 'categoryFrench' },
     drinks: { emoji: '🥤', labelKey: 'categoryDrinks' },
+    desserts: { emoji: '🍰', labelKey: 'categoryDesserts' },
   };
-  const CATEGORY_ORDER = ['all', 'korean', 'japanese', 'american', 'italian', 'drinks'];
+  const CATEGORY_ORDER = [
+    'all',
+    'korean',
+    'japanese',
+    'american',
+    'italian',
+    'chinese',
+    'mexican',
+    'indian',
+    'thai',
+    'vietnamese',
+    'middleeastern',
+    'spanish',
+    'french',
+    'drinks',
+    'desserts',
+  ];
 
   function shortLevelLabel() {
     const label = String(T(`level${state.level}`));
     const idx = label.indexOf(' ');
     return idx > 0 ? label.slice(0, idx) : label;
+  }
+
+  function cuisineLabel(cuisine) {
+    const meta = CUISINE_META[cuisine];
+    return meta ? T(meta.labelKey) : '';
   }
 
   function renderCategories() {
@@ -965,7 +995,7 @@
     return `
       <article class="dish-card ${count ? 'is-added' : ''}" data-dish-card="${id}">
         <div class="dish-media">
-          <button class="media-hit" type="button" data-fatigue="${id}" aria-label="${esc(meta.name)} · ${esc(T('gridCta'))}">
+          <button class="media-hit" type="button" data-detail="${id}" aria-label="${esc(meta.name)} · ${esc(T('detailHint'))}">
             <canvas data-dish-canvas="${id}" width="${SW}" height="${SH}"></canvas>
           </button>
           <span class="cuisine-chip" title="${esc(T(cuisine.labelKey))}">${cuisine.emoji}</span>
@@ -973,7 +1003,7 @@
           <button class="prank-fab" type="button" data-prank-dish="${id}" aria-label="${esc(T('prankDish'))}" title="${esc(T('prankDish'))}">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3.5h6M10 3.5v5.2L5.8 17a3 3 0 0 0 2.7 4.4h7a3 3 0 0 0 2.7-4.4L14 8.7V3.5"/><path d="M7.4 14.2h9.2"/></svg>
           </button>
-          <button class="grid-pill" type="button" data-fatigue="${id}">
+          <button class="grid-pill" type="button" data-fatigue="${id}" aria-label="${esc(meta.name)} · ${esc(T('fatigueCta'))}">
             <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M1 1h3v3H1zM4.5 1h3v3h-3zM8 1h3v3H8zM1 4.5h3v3H1zM4.5 4.5h3v3h-3zM8 4.5h3v3H8zM1 8h3v3H1zM4.5 8h3v3h-3zM8 8h3v3H8z"/></svg>
             ${esc(T('gridCta'))}
           </button>
@@ -1885,6 +1915,75 @@
   /* ------------------------------------------------------------
      Nine-grid fatigue
      ------------------------------------------------------------ */
+  function openDishDetail(id) {
+    const meta = dishMeta(id);
+    if (!meta) return;
+    const count = Number(state.cart[id]) || 0;
+    const price = money(meta.price?.[CURRENCY] || 0);
+    const cuisine = cuisineLabel(meta.cuisine);
+    openModal(
+      `<div class="sheet detail-sheet">
+        <div class="sheet-head">
+          <div>
+            <h3>${esc(meta.name)}</h3>
+            <p>${esc(cuisine)}${meta.badge ? ` · ${esc(meta.badge)}` : ''}</p>
+          </div>
+          <button class="icon-x" type="button" data-close-modal aria-label="${esc(T('close'))}">
+            <svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg>
+          </button>
+        </div>
+        <div class="sheet-body detail-body">
+          <div class="detail-media">
+            <canvas id="detailCanvas" width="${SW}" height="${SH}"></canvas>
+          </div>
+          <div class="detail-stats">
+            <span class="meta-pill">★ ${num(meta.kcal)} ${esc(T('kcalUnit'))}</span>
+            <span class="meta-pill">${meta.butter} ${esc(T('butterUnit'))}</span>
+            <span class="meta-pill">${meta.sugar} ${esc(T('sugarUnit'))}</span>
+            <span class="meta-level">${esc(shortLevelLabel())}</span>
+          </div>
+          <p class="detail-poison">${esc(meta.poison)}</p>
+          <p class="detail-desc">${esc(meta.desc)}</p>
+          <div class="detail-price-row">
+            <div class="detail-price">
+              <b>${esc(price)}</b>
+              <small>${esc(fmt(T('cartSaved'), { money: price }))}</small>
+            </div>
+            <button class="btn btn-coral" type="button" id="detailAddBtn">${
+              count ? esc(fmt(T('addedCart'), { n: count })) : esc(T('addCart'))
+            }</button>
+          </div>
+          <div class="detail-secondary">
+            <button class="btn btn-mint" type="button" id="detailFatigueBtn">${esc(T('fatigueCta'))}</button>
+            <button class="btn btn-ghost" type="button" id="detailPrankBtn">${esc(T('prankDish'))}</button>
+          </div>
+        </div>
+      </div>`,
+      { className: 'is-center', dismissible: true }
+    );
+
+    const canvas = $('#detailCanvas');
+    const filtered = filteredFor(id);
+    if (canvas && filtered) {
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(filtered, 0, 0, SW, SH);
+    }
+    $('#detailAddBtn')?.addEventListener('click', () => {
+      addToCart(id);
+      const btn = $('#detailAddBtn');
+      const n = Number(state.cart[id]) || 0;
+      if (btn) btn.textContent = fmt(T('addedCart'), { n });
+    });
+    $('#detailPrankBtn')?.addEventListener('click', () => {
+      state.prank.dish = id;
+      closeModal();
+      renderPrank();
+      scrollToId('prank');
+      toast(T('toastPrankReady'));
+    });
+    $('#detailFatigueBtn')?.addEventListener('click', () => openFatigue(id));
+  }
+
   function openFatigue(id) {
     const meta = dishMeta(id);
     const custom = state.customDeck.find((d) => d.id === id);
@@ -2579,6 +2678,22 @@
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  function bindHeroPeek() {
+    const img = $('#heroFood');
+    const btn = $('#heroPeek');
+    if (!img || !btn) return;
+    const show = (e) => {
+      e.preventDefault();
+      img.classList.add('is-original');
+    };
+    const hide = () => img.classList.remove('is-original');
+    btn.addEventListener('pointerdown', show);
+    btn.addEventListener('pointerup', hide);
+    btn.addEventListener('pointercancel', hide);
+    btn.addEventListener('pointerleave', hide);
+    btn.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
+
   function bindPeek() {
     const btn = $('#peekBtn');
     if (!btn) return;
@@ -2667,6 +2782,7 @@
     });
 
     bindPeek();
+    bindHeroPeek();
     bindLangMenu();
 
     const currencyBtn = $('#currencyBtn');
@@ -2729,6 +2845,11 @@
         renderPrank();
         scrollToId('prank');
         toast(T('toastPrankReady'));
+        return;
+      }
+      const detail = e.target.closest('[data-detail]');
+      if (detail) {
+        openDishDetail(detail.dataset.detail);
         return;
       }
       const fatigue = e.target.closest('[data-fatigue]');

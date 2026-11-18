@@ -1022,6 +1022,51 @@ button:disabled {
   transform: rotate(-1.4deg);
 }
 
+.hero-single {
+  position: relative;
+  overflow: hidden;
+  border-radius: 21px;
+  background: var(--mint-soft);
+}
+
+.hero-single img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  transition: filter 0.14s ease;
+}
+
+.hero-single img.is-original {
+  filter: none;
+}
+
+.hero-peek {
+  position: absolute;
+  top: 11px;
+  right: 11px;
+  z-index: 4;
+  height: 27px;
+  padding: 0 9px;
+  border: 1px solid rgba(244, 218, 208, 0.95);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--coral-deep);
+  font-size: 8.5px;
+  font-weight: 900;
+  box-shadow: 0 3px 8px rgba(67, 48, 58, 0.12);
+  backdrop-filter: blur(8px);
+}
+
+.hero-peek:hover {
+  background: #fff;
+}
+
+.hero-peek:active {
+  transform: scale(0.96);
+}
+
 .hero-split {
   display: flex;
   overflow: hidden;
@@ -1086,9 +1131,11 @@ button:disabled {
 
 .hero-photo-label {
   position: absolute;
-  right: 18px;
-  bottom: 19px;
+  left: 13px;
+  bottom: 13px;
   z-index: 4;
+  max-width: 72%;
+  overflow: hidden;
   padding: 5px 9px;
   border-radius: 8px;
   background: rgba(67, 48, 58, 0.9);
@@ -1096,7 +1143,34 @@ button:disabled {
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   backdrop-filter: blur(6px);
+}
+
+.hero-mobile-photo {
+  display: none;
+  position: relative;
+  margin-top: 18px;
+  padding: 8px;
+  border: 1px solid rgba(244, 218, 208, 0.9);
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 6px 0 rgba(216, 68, 61, 0.08), 0 20px 40px rgba(216, 68, 61, 0.13);
+}
+
+.hero-mobile-photo img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  border-radius: 17px;
+  object-fit: cover;
+}
+
+.hero-mobile-photo .hero-sticker {
+  top: -14px;
+  left: -5px;
 }
 
 /* ============================================================
@@ -2558,6 +2632,11 @@ button:disabled {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
+  max-height: 186px;
+  overflow-y: auto;
+  padding-right: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
 }
 
 .dish-select button {
@@ -3016,6 +3095,109 @@ button:disabled {
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   margin-top: 11px;
+}
+
+/* Single-image dish detail */
+
+.detail-sheet {
+  max-width: 560px;
+}
+
+.detail-sheet .sheet-head h3 {
+  font-size: 19px;
+  letter-spacing: -0.03em;
+}
+
+.detail-media {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--mint-soft);
+}
+
+.detail-media canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.detail-stats {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.detail-stats .meta-pill {
+  padding: 4px 8px;
+  font-size: 9.5px;
+}
+
+.detail-stats .meta-level {
+  font-size: 9px;
+}
+
+.detail-poison {
+  margin-top: 11px;
+  color: var(--coral-deep);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.5;
+}
+
+.detail-desc {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.7;
+}
+
+.detail-price-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 13px;
+  padding-top: 11px;
+  border-top: 1px dashed var(--line);
+}
+
+.detail-price b {
+  display: block;
+  color: var(--ink);
+  font-size: 25px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.detail-price small {
+  display: block;
+  margin-top: 3px;
+  color: var(--coral-deep);
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.detail-price-row .btn {
+  flex: 0 0 auto;
+  height: 42px;
+  padding: 0 17px;
+  font-size: 11.5px;
+}
+
+.detail-secondary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.detail-secondary .btn {
+  height: 40px;
+  font-size: 10.5px;
 }
 
 /* Fatigue */
@@ -4162,8 +4344,11 @@ button:disabled {
   }
 
   .hero-art {
-    width: min(100%, 620px);
-    margin: 0 auto;
+    display: none;
+  }
+
+  .hero-mobile-photo {
+    display: block;
   }
 
   .hero h1 {
