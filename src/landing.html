@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="{{lang}}" dir="{{dir}}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>{{meta.title}}</title>
+  <meta name="description" content="{{meta.description}}">
+  <meta name="keywords" content="{{meta.keywords}}">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="{{canonical}}">
+  {{{hreflang}}}
+  <meta name="theme-color" content="#05080f">
+  <meta name="color-scheme" content="dark">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icon-512.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/styles.css">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="{{site.name}}">
+  <meta property="og:title" content="{{meta.ogTitle}}">
+  <meta property="og:description" content="{{meta.ogDesc}}">
+  <meta property="og:url" content="{{canonical}}">
+  <meta property="og:image" content="{{ogImage}}">
+  <meta property="og:image:alt" content="{{meta.ogTitle}}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale" content="{{ogLocale}}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{meta.ogTitle}}">
+  <meta name="twitter:description" content="{{meta.ogDesc}}">
+  <meta name="twitter:image" content="{{ogImage}}">
+  <meta name="twitter:image:alt" content="{{meta.ogTitle}}">
+
+  <script type="application/ld+json">{{{jsonLd}}}</script>
+</head>
+<body class="landing">
+<div class="site">
+  <header class="landing-top">
+    <a class="landing-brand" href="{{homePath}}">
+      <span class="footer-mark">AC</span>
+      <span>{{site.name}}</span>
+    </a>
+    <div class="landing-top-actions">
+      <a class="landing-lang" href="{{alternateLandingPath}}" hreflang="{{alternateLang}}">{{alternateLabel}}</a>
+      <a class="btn btn-primary btn-sm" href="{{appPath}}">{{ctaTry}}</a>
+    </div>
+  </header>
+
+  <main class="seo">
+    {{{landingContent}}}
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-brand">
+      <span class="footer-mark">AC</span>
+      <span>{{site.name}}</span>
+    </div>
+    <p>{{footerNote}}</p>
+    <p>{{footerPhotos}}</p>
+    <p class="footer-medical">{{footerMedical}}</p>
+    <nav class="footer-langs" aria-label="Languages">{{{footerLangLinks}}}</nav>
+    <p class="footer-copy">© <span id="year">{{year}}</span> {{site.name}}</p>
+  </footer>
+</div>
+</body>
+</html>
