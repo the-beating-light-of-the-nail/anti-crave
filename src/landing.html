@@ -9,12 +9,12 @@
   <meta name="robots" content="index, follow, max-image-preview:large">
   <link rel="canonical" href="{{canonical}}">
   {{{hreflang}}}
-  <meta name="theme-color" content="#05080f">
-  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#FFF1EC">
+  <meta name="color-scheme" content="light">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/icon-512.png">
   <link rel="manifest" href="/manifest.webmanifest">
-  <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/nunito-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/styles.css">
 
   <meta property="og:type" content="article">
@@ -39,8 +39,15 @@
 <div class="site">
   <header class="landing-top">
     <a class="landing-brand" href="{{homePath}}">
-      <span class="footer-mark">AC</span>
-      <span>{{site.name}}</span>
+      <span class="brand-logo" aria-hidden="true">
+        <svg viewBox="0 0 48 48">
+          <path class="bowl" d="M10 25.5h28c0 8.4-5.7 13.7-14 13.7s-14-5.3-14-13.7Z"/>
+          <path class="noodles" d="M18 25.5c0-7.4 2.6-12 6-12s6 4.6 6 12"/>
+          <path class="noodles" d="M21.6 14.5v11M26.4 14.5v11M31 14.5v11"/>
+          <path class="slash" d="M14.5 38.5 34 13.5"/>
+        </svg>
+      </span>
+      <span><strong>{{site.name}}</strong><small>{{brandKicker}}</small></span>
     </a>
     <div class="landing-top-actions">
       <a class="landing-lang" href="{{alternateLandingPath}}" hreflang="{{alternateLang}}">{{alternateLabel}}</a>
@@ -53,15 +60,29 @@
   </main>
 
   <footer class="site-footer">
-    <div class="footer-brand">
-      <span class="footer-mark">AC</span>
-      <span>{{site.name}}</span>
+    <div class="footer-inner">
+      <div class="footer-top">
+        <a class="footer-brand" href="{{homePath}}">
+          <span class="brand-logo" aria-hidden="true">
+            <svg viewBox="0 0 48 48">
+              <path class="bowl" d="M10 25.5h28c0 8.4-5.7 13.7-14 13.7s-14-5.3-14-13.7Z"/>
+              <path class="noodles" d="M18 25.5c0-7.4 2.6-12 6-12s6 4.6 6 12"/>
+              <path class="noodles" d="M21.6 14.5v11M26.4 14.5v11M31 14.5v11"/>
+              <path class="slash" d="M14.5 38.5 34 13.5"/>
+            </svg>
+          </span>
+          <span><strong>{{site.name}}</strong><small>{{brandKicker}}</small></span>
+        </a>
+        <nav class="footer-langs" aria-label="Languages">{{{footerLangLinks}}}</nav>
+      </div>
+      <p class="footer-note">{{footerNote}}</p>
+      <p>{{footerPhotos}}</p>
+      <p class="footer-medical">{{footerMedical}}</p>
+      <div class="footer-bottom">
+        <span>© <span id="year">{{year}}</span> {{site.name}}</span>
+        <span>{{brandKicker}}</span>
+      </div>
     </div>
-    <p>{{footerNote}}</p>
-    <p>{{footerPhotos}}</p>
-    <p class="footer-medical">{{footerMedical}}</p>
-    <nav class="footer-langs" aria-label="Languages">{{{footerLangLinks}}}</nav>
-    <p class="footer-copy">© <span id="year">{{year}}</span> {{site.name}}</p>
   </footer>
 </div>
 </body>

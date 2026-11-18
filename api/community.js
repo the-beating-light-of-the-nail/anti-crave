@@ -4,18 +4,20 @@
 import { createHash } from 'node:crypto';
 
 const PREFIX = 'anticrave:';
-const DISH_IDS = ['burger', 'pizza', 'chicken', 'fries', 'milktea', 'ramen'];
+const DISH_IDS = ['tteokbokki', 'burger', 'chicken', 'sushi', 'ramen', 'pizza', 'fries', 'milktea'];
 const SIDES = new Set(['quit', 'hungry']);
 
 // Small demo baseline so a brand-new poll does not look broken.
 // Set every number to 0 to run a fully organic board.
 const SEED = {
+  tteokbokki: { quit: 132, hungry: 11 },
   burger: { quit: 148, hungry: 16 },
-  pizza: { quit: 121, hungry: 21 },
   chicken: { quit: 197, hungry: 18 },
+  sushi: { quit: 109, hungry: 9 },
+  ramen: { quit: 175, hungry: 19 },
+  pizza: { quit: 121, hungry: 21 },
   fries: { quit: 96, hungry: 14 },
   milktea: { quit: 168, hungry: 12 },
-  ramen: { quit: 175, hungry: 19 },
 };
 
 const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;

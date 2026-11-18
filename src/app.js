@@ -12,7 +12,8 @@
 
   const UI = I.ui;
   const LOCALE = CFG.locale;
-  const CURRENCY = CFG.currency;
+  const CURRENCIES = ['USD', 'CNY', 'KRW', 'JPY'];
+  let CURRENCY = CFG.currency;
   const META = Object.fromEntries((CFG.dishes || []).map((d) => [d.id, d]));
   const DISH_IDS = (CFG.dishes || []).map((d) => d.id);
   const ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(location.origin)
@@ -30,13 +31,21 @@
     String(str).replace(/\{(\w+)\}/g, (m, key) => (vars[key] == null ? m : vars[key]));
   const nf = new Intl.NumberFormat(LOCALE);
   const num = (n) => nf.format(Math.round(n));
-  const moneyFmt = new Intl.NumberFormat(LOCALE, {
-    style: 'currency',
-    currency: CURRENCY,
-    maximumFractionDigits: 0,
-    minimumFractionDigits: 0,
-  });
-  const money = (n) => moneyFmt.format(Math.round(n));
+  const moneyFormats = new Map();
+  const money = (n) => {
+    if (!moneyFormats.has(CURRENCY)) {
+      moneyFormats.set(
+        CURRENCY,
+        new Intl.NumberFormat(LOCALE, {
+          style: 'currency',
+          currency: CURRENCY,
+          maximumFractionDigits: 0,
+          minimumFractionDigits: 0,
+        })
+      );
+    }
+    return moneyFormats.get(CURRENCY).format(Math.round(n));
+  };
   const pad = (n) => String(n).padStart(2, '0');
   const today = () => {
     const d = new Date();
@@ -85,7 +94,10 @@
     audio: true,
     danmaku: !prefersReduced,
     peeking: false,
-    activeTab: 'order',
+    activeTab: 'all',
+    currency: CURRENCY,
+    category: 'all',
+    search: '',
     cart: store.get(LS.cart, {}),
     sources: {},
     cache: new Map(),
@@ -122,6 +134,12 @@
     danmakuLane: 0,
     lastPulseFetch: 0,
   };
+
+  const savedCurrency = store.get('anticrave:v1:currency', '');
+  if (CURRENCIES.includes(savedCurrency)) {
+    CURRENCY = savedCurrency;
+    state.currency = savedCurrency;
+  }
 
   if (!state.myVotes || state.myVotes.date !== today()) {
     state.myVotes = { date: today(), votes: {} };
@@ -260,12 +278,12 @@
     const H = SH;
 
     const bg = ctx.createLinearGradient(0, 0, 0, H);
-    bg.addColorStop(0, '#172234');
-    bg.addColorStop(1, '#070d17');
+    bg.addColorStop(0, '#F6DED4');
+    bg.addColorStop(1, '#EACBBF');
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, W, H);
 
-    ctx.fillStyle = '#eef2f7';
+    ctx.fillStyle = '#ffffff';
     ctx.beginPath();
     ctx.ellipse(W / 2, H * 0.55, W * 0.4, H * 0.33, 0, 0, Math.PI * 2);
     ctx.fill();
@@ -793,7 +811,7 @@
   /* ------------------------------------------------------------
      Danmaku
      ------------------------------------------------------------ */
-  const DANMAKU_COLORS = ['#cffafe', '#e0f2fe', '#fef3c7', '#dcfce7', '#fae8ff', '#f1f5f9'];
+  const DANMAKU_COLORS = ['#43303a', '#d8443d', '#4f9e7c', '#9b5c74', '#b5821f', '#5b454f'];
 
   function spawnDanmaku(text, color) {
     if (!state.danmaku || !text) return;
@@ -804,7 +822,7 @@
     const el = document.createElement('span');
     el.className = 'danmaku-item';
     el.textContent = text;
-    el.style.top = `${2 + (state.danmakuLane % 3) * 17}px`;
+    el.style.top = `${2 + (state.danmakuLane % 3) * 13}px`;
     state.danmakuLane += 1;
     el.style.color = color || DANMAKU_COLORS[Math.floor(Math.random() * DANMAKU_COLORS.length)];
     const duration = 9 + Math.random() * 5;
@@ -837,7 +855,7 @@
     }
     state.lastAdvice = clean;
     if (Array.isArray(UI.danmakuPool)) UI.danmakuPool.unshift(clean);
-    spawnDanmaku(clean, '#67e8f9');
+    spawnDanmaku(clean, '#D8443D');
     return true;
   }
 
@@ -865,6 +883,52 @@
     };
   }
 
+  const CUISINE_META = {
+    korean: { emoji: '🇰🇷', labelKey: 'categoryKorean' },
+    japanese: { emoji: '🇯🇵', labelKey: 'categoryJapanese' },
+    american: { emoji: '🇺🇸', labelKey: 'categoryAmerican' },
+    italian: { emoji: '🇮🇹', labelKey: 'categoryItalian' },
+    drinks: { emoji: '🥤', labelKey: 'categoryDrinks' },
+  };
+  const CATEGORY_ORDER = ['all', 'korean', 'japanese', 'american', 'italian', 'drinks'];
+
+  function shortLevelLabel() {
+    const label = String(T(`level${state.level}`));
+    const idx = label.indexOf(' ');
+    return idx > 0 ? label.slice(0, idx) : label;
+  }
+
+  function renderCategories() {
+    const root = $('#categoryRow');
+    if (!root) return;
+    root.innerHTML = CATEGORY_ORDER.map((id) => {
+      const meta =
+        id === 'all'
+          ? { emoji: '✨', label: T('categoryAll') }
+          : { emoji: CUISINE_META[id].emoji, label: T(CUISINE_META[id].labelKey) };
+      return `<button class="category-btn ${state.category === id ? 'is-active' : ''}" type="button" data-category="${id}" aria-pressed="${state.category === id}">
+        <span class="cat-circle"><span class="cat-emoji" aria-hidden="true">${meta.emoji}</span></span>
+        <span class="cat-name">${esc(meta.label)}</span>
+      </button>`;
+    }).join('');
+    root.querySelectorAll('[data-category]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.category = btn.dataset.category;
+        renderCategories();
+        renderDishList();
+      });
+    });
+  }
+
+  function setSearch(value) {
+    state.search = String(value || '');
+    const hero = $('#heroSearch');
+    const menu = $('#dishSearch');
+    if (hero && hero.value !== state.search) hero.value = state.search;
+    if (menu && menu.value !== state.search) menu.value = state.search;
+    renderDishList();
+  }
+
   function renderSavings() {
     const root = $('#savingsCard');
     if (!root) return;
@@ -873,25 +937,19 @@
     const empty = !saved.count;
     root.innerHTML = `
       <div class="savings-card ${empty ? 'is-empty' : ''}">
-        <div class="savings-top">
-          <div>
-            <div class="savings-kicker">${esc(T('savingsTitle'))}</div>
-            <div class="savings-month">${esc(fmt(T('savingsMonth'), { month: monthLabel() }))}</div>
-          </div>
-          <div class="piggy" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><path d="M4.2 12.4c0-3 2.9-5.2 6.5-5.2h3.1c3.2 0 5.7 1.8 5.7 4.5 0 1.4-.7 2.6-1.8 3.5v2.2h-2.8v-1.1h-3.1v1.1H8.9v-1.8c-1.4-1-2.1-2.4-2.1-3.9Z"/><path d="M9.2 10.3v2.1M17.6 7.2l1.4-2.1"/></svg>
-          </div>
+        <div class="piggy" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M4.2 12.4c0-3 2.9-5.2 6.5-5.2h3.1c3.2 0 5.7 1.8 5.7 4.5 0 1.4-.7 2.6-1.8 3.5v2.2h-2.8v-1.1h-3.1v1.1H8.9v-1.8c-1.4-1-2.1-2.4-2.1-3.9Z"/><path d="M9.2 10.3v2.1M17.6 7.2l1.4-2.1"/></svg>
         </div>
-        <div class="savings-amount">
-          <b>${esc(money(amount))}</b>
-          <small>${esc(T('savingsAmountLabel'))}</small>
+        <div class="savings-copy">
+          <div class="savings-kicker">${esc(T('savingsTitle'))}</div>
+          <div class="savings-month">${esc(fmt(T('savingsMonth'), { month: monthLabel() }))}</div>
+          <div class="savings-amount"><b>${esc(money(amount))}</b><small>${esc(T('savingsAmountLabel'))}</small></div>
         </div>
         <div class="savings-stats">
           <div><b>${num(saved.count)}</b><span>${esc(T('savingsOrders'))}</span></div>
           <div><b>${num(saved.kcal)}</b><span>${esc(T('savingsKcalLabel'))}</span></div>
           <div><b>${num(saved.lifetimeCount)}</b><span>${esc(T('savingsLifetimeLabel'))}</span></div>
         </div>
-        <p class="savings-note">${esc(empty ? `${T('savingsEmptyTitle')} ${T('savingsEmptyNote')}` : T('savingsEmptyNote'))}</p>
       </div>`;
   }
 
@@ -900,36 +958,42 @@
     if (!meta) return '';
     const count = Number(state.cart[id]) || 0;
     const price = money(meta.price?.[CURRENCY] || 0);
+    const cuisine = CUISINE_META[meta.cuisine] || { emoji: '🍽', labelKey: 'categoryAll' };
+    const badge = meta.badge
+      ? `<span class="card-badge card-badge-${meta.badge.toLowerCase()}">${esc(meta.badge)}</span>`
+      : '';
     return `
       <article class="dish-card ${count ? 'is-added' : ''}" data-dish-card="${id}">
-        <button class="dish-media" type="button" data-fatigue="${id}" aria-label="${esc(T('imageHint'))}">
-          <canvas data-dish-canvas="${id}" width="${SW}" height="${SH}"></canvas>
-          <span class="media-shade"></span>
-          <span class="clinical-vignette"></span>
-          <span class="media-chips">
-            <span class="tag kcal-tag">${num(meta.kcal)} ${esc(T('kcalUnit'))}</span>
-            <span class="tag price-tag">${esc(price)}</span>
-          </span>
-          <span class="media-hint">${esc(T('imageHint'))}</span>
-          <span class="media-level">${esc(T(`level${state.level}`))}</span>
-        </button>
+        <div class="dish-media">
+          <button class="media-hit" type="button" data-fatigue="${id}" aria-label="${esc(meta.name)} · ${esc(T('gridCta'))}">
+            <canvas data-dish-canvas="${id}" width="${SW}" height="${SH}"></canvas>
+          </button>
+          <span class="cuisine-chip" title="${esc(T(cuisine.labelKey))}">${cuisine.emoji}</span>
+          ${badge}
+          <button class="prank-fab" type="button" data-prank-dish="${id}" aria-label="${esc(T('prankDish'))}" title="${esc(T('prankDish'))}">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3.5h6M10 3.5v5.2L5.8 17a3 3 0 0 0 2.7 4.4h7a3 3 0 0 0 2.7-4.4L14 8.7V3.5"/><path d="M7.4 14.2h9.2"/></svg>
+          </button>
+          <button class="grid-pill" type="button" data-fatigue="${id}">
+            <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M1 1h3v3H1zM4.5 1h3v3h-3zM8 1h3v3H8zM1 4.5h3v3H1zM4.5 4.5h3v3h-3zM8 4.5h3v3H8zM1 8h3v3H1zM4.5 8h3v3h-3zM8 8h3v3H8z"/></svg>
+            ${esc(T('gridCta'))}
+          </button>
+        </div>
         <div class="dish-body">
-          <div class="dish-title">
-            <h3>${esc(meta.name)}</h3>
-            <span class="dish-count" data-dish-count="${id}" ${count ? '' : 'hidden'}>×${count}</span>
+          <div class="dish-title"><h3>${esc(meta.name)}</h3></div>
+          <div class="dish-meta">
+            <span class="meta-pill">★ ${num(meta.kcal)} ${esc(T('kcalUnit'))}</span>
+            <span class="meta-level">${esc(shortLevelLabel())}</span>
+            <span class="meta-anchor">${meta.butter} ${esc(T('butterUnit'))}</span>
           </div>
           <p class="dish-poison">${esc(meta.poison)}</p>
-          <p class="dish-desc">${esc(meta.desc)}</p>
-          <div class="anchor">
-            <span class="anchor-label">${esc(T('anchorPrefix'))}</span>
-            <div class="anchor-items">
-              <span class="anchor-item"><i class="ico-butter"></i>${meta.butter} ${esc(T('butterUnit'))}</span>
-              <span class="anchor-item"><i class="ico-sugar"></i>${meta.sugar} ${esc(T('sugarUnit'))}</span>
+          <div class="dish-price-row">
+            <div class="dish-price-wrap">
+              <div class="dish-price">${esc(price)}</div>
+              <div class="dish-saved">${esc(fmt(T('cartSaved'), { money: price }))}</div>
             </div>
-          </div>
-          <div class="dish-actions">
-            <button class="btn btn-ghost btn-sm" type="button" data-prank-dish="${id}">${esc(T('prankDish'))}</button>
-            <button class="btn btn-primary btn-sm" type="button" data-add-cart="${id}">${esc(count ? fmt(T('addedCart'), { n: count }) : T('addCart'))}</button>
+            <button class="btn-add ${count ? 'is-added' : ''}" type="button" data-add-cart="${id}">${
+              count ? `×${count}` : esc(T('blockShort'))
+            }</button>
           </div>
         </div>
       </article>`;
@@ -938,7 +1002,17 @@
   function renderDishList() {
     const root = $('#dishList');
     if (!root) return;
-    root.innerHTML = DISH_IDS.map(cardHTML).join('');
+    const q = state.search.trim().toLowerCase();
+    const visible = DISH_IDS.filter((id) => {
+      const meta = dishMeta(id);
+      if (!meta) return false;
+      if (state.category !== 'all' && meta.cuisine !== state.category) return false;
+      if (!q) return true;
+      return `${meta.name} ${meta.poison} ${meta.desc}`.toLowerCase().includes(q);
+    });
+    root.innerHTML = visible.length
+      ? visible.map(cardHTML).join('')
+      : `<div class="menu-empty">${esc(T('menuEmpty'))}</div>`;
     drawDishCards();
     updateCartUI();
   }
@@ -949,15 +1023,13 @@
       if (!card) return;
       const n = Number(state.cart[id]) || 0;
       card.classList.toggle('is-added', n > 0);
-      const badge = $(`[data-dish-count="${id}"]`, card);
-      if (badge) {
-        badge.hidden = n <= 0;
-        badge.textContent = `×${n}`;
-      }
       const btn = $('[data-add-cart]', card);
-      if (btn) btn.textContent = n > 0 ? fmt(T('addedCart'), { n }) : T('addCart');
-      const level = $('.media-level', card);
-      if (level) level.textContent = T(`level${state.level}`);
+      if (btn) {
+        btn.textContent = n > 0 ? `×${n}` : T('blockShort');
+        btn.classList.toggle('is-added', n > 0);
+      }
+      const level = $('.meta-level', card);
+      if (level) level.textContent = shortLevelLabel();
     });
   }
 
@@ -969,6 +1041,7 @@
     const badge = $('#cartBadge');
     const checkout = $('#checkoutBtn');
     const clear = $('#cartClearBtn');
+    const bar = $('#cartBar');
 
     if (kcalEl) kcalEl.textContent = fmt(T('cartBlocked'), { n: num(totals.kcal) });
     if (moneyEl) moneyEl.textContent = fmt(T('cartSaved'), { money: money(totals.money) });
@@ -983,7 +1056,31 @@
     }
     if (checkout) checkout.disabled = totals.items <= 0;
     if (clear) clear.hidden = totals.items <= 0;
+    if (bar) bar.classList.toggle('is-hidden', totals.items <= 0);
+    document.body.classList.toggle('has-cart', totals.items > 0);
     syncCardStates();
+  }
+
+  function updateCurrencyButton() {
+    const code = $('#currencyCode');
+    if (code) code.textContent = CURRENCY;
+    $$('#currencyMenu [data-currency]').forEach((btn) => {
+      btn.classList.toggle('is-active', btn.dataset.currency === CURRENCY);
+    });
+  }
+
+  function setCurrency(currency) {
+    if (!CURRENCIES.includes(currency)) return;
+    CURRENCY = currency;
+    state.currency = currency;
+    store.set('anticrave:v1:currency', currency);
+    updateCurrencyButton();
+    renderDishList();
+    renderSavings();
+    const menu = $('#currencyMenu');
+    if (menu) menu.hidden = true;
+    const btn = $('#currencyBtn');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
   }
 
   function addToCart(id) {
@@ -1056,7 +1153,7 @@
       state.pulse = Number(data.stats.pulse) || 0;
       if (data.stats.votes) state.votes = data.stats.votes;
       updatePulseText();
-      if (state.activeTab === 'vote' && !state.challenge.active) {
+      if (!state.challenge.active) {
         const card = $('#voteCard');
         if (card && !card.classList.contains('is-swiping')) renderVote();
       }
@@ -1105,7 +1202,7 @@
     if (!root) return;
     const item = deckItemAt(state.voteIndex);
     if (!item) {
-      root.innerHTML = `<div class="panel" style="padding:22px;text-align:center;color:var(--muted);font-size:12px">${esc(T('voteEmpty'))}</div>`;
+      root.innerHTML = `<div class="menu-empty">${esc(T('voteEmpty'))}</div>`;
       return;
     }
     const custom = state.customDeck.find((d) => d.id === item.id);
@@ -1277,7 +1374,7 @@
      15-second tolerance challenge
      ------------------------------------------------------------ */
   function challengeStartBtnHTML() {
-    return `<button class="btn btn-amber btn-sm" type="button" id="challengeStartBtn">${esc(
+    return `<button class="btn btn-coral btn-sm" type="button" id="challengeStartBtn">${esc(
       state.challenge.active ? T('challengeStop') : T('challengeStart')
     )}</button>`;
   }
@@ -1285,10 +1382,10 @@
   function renderVoteHead() {
     const head = $('#voteHead');
     if (!head) return;
-    head.innerHTML = `<div class="panel vote-head">
-      <div>
-        <h2>${esc(T('voteHeading'))}</h2>
-        <p>${esc(T('voteSub'))}</p>
+    head.innerHTML = `<div class="vote-testbar">
+      <div class="testbar-left">
+        <span class="testbar-tag">15s</span>
+        <span class="testbar-hint">${esc(T('challengeHint'))}</span>
       </div>
       ${challengeStartBtnHTML()}
     </div>`;
@@ -1409,7 +1506,7 @@
       result.hidden = false;
       const title = won ? T('challengeWinTitle') : fmt(T('challengeLoseTitle'), { s: rounded });
       const desc = won ? T('challengeWinDesc') : fmt(T('challengeLoseDesc'), { s: rounded });
-      result.innerHTML = `<div class="challenge-result panel">
+      result.innerHTML = `<div class="challenge-result">
         <h3>${esc(title)}</h3>
         <p>${esc(desc)}</p>
         <p style="color:var(--muted-2);font-size:9px;margin-top:6px">${esc(
@@ -1455,16 +1552,6 @@
     if (!root) return;
     root.innerHTML = `
       <div class="prank-panel">
-        <div class="prank-head">
-          <div class="prank-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><path d="M9 3.2h6M10 3.2v5.1L5.7 17a3 3 0 0 0 2.7 4.3h7.2a3 3 0 0 0 2.7-4.3L14 8.3V3.2"/><path d="M7.3 14h9.4"/><path d="M9.4 17.2h.01M13.6 17.2h.01"/></svg>
-          </div>
-          <div>
-            <h2>${esc(T('prankHeading'))}</h2>
-            <p>${esc(T('prankSub'))}</p>
-          </div>
-        </div>
-
         <div class="field">
           <label for="prankSenderInput">${esc(T('prankStep1'))}</label>
           <input id="prankSenderInput" type="text" maxlength="32" autocomplete="off" value="${esc(state.prank.sender)}">
@@ -1663,11 +1750,11 @@
         const h = canvas.height;
         const bg = ctx.createRadialGradient(w * 0.5, h * 0.4, 0, w * 0.5, h * 0.55, Math.max(w, h) * 0.8);
         if (tone === 'ambush') {
-          bg.addColorStop(0, 'rgba(42, 65, 12, 0.32)');
-          bg.addColorStop(1, 'rgba(4, 8, 8, 0)');
+          bg.addColorStop(0, 'rgba(255, 211, 107, 0.3)');
+          bg.addColorStop(1, 'rgba(255, 241, 236, 0)');
         } else {
-          bg.addColorStop(0, 'rgba(24, 55, 18, 0.3)');
-          bg.addColorStop(1, 'rgba(4, 8, 8, 0)');
+          bg.addColorStop(0, 'rgba(111, 191, 154, 0.22)');
+          bg.addColorStop(1, 'rgba(255, 241, 236, 0)');
         }
         ctx.clearRect(0, 0, w, h);
         ctx.fillStyle = bg;
@@ -1683,12 +1770,12 @@
           const rr = p.r * dpr;
           ctx.beginPath();
           ctx.arc(x, y, rr, 0, Math.PI * 2);
-          ctx.strokeStyle = tone === 'ambush' ? 'rgba(163, 230, 53, 0.26)' : 'rgba(163, 230, 53, 0.22)';
+          ctx.strokeStyle = tone === 'ambush' ? 'rgba(232, 182, 76, 0.42)' : 'rgba(111, 191, 154, 0.4)';
           ctx.lineWidth = Math.max(1, dpr * 1.3);
           ctx.stroke();
           ctx.beginPath();
           ctx.arc(x - rr * 0.25, y - rr * 0.3, rr * 0.3, 0, Math.PI * 2);
-          ctx.fillStyle = 'rgba(190, 242, 100, 0.08)';
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.34)';
           ctx.fill();
         }
       }
@@ -1789,9 +1876,9 @@
       state.pendingUpload = null;
       closeModal();
       toast(T('toastUploaded'));
-      switchTab('vote');
       state.voteIndex = DISH_IDS.length + state.customDeck.length - 1;
       renderVote();
+      scrollToId('poll');
     });
   }
 
@@ -1902,7 +1989,7 @@
             })
           )}</p>
           <div class="poison-actions">
-            <button class="btn btn-primary" type="button" id="poisonCounterBtn" style="background:linear-gradient(180deg,#c4b5fd,#8b5cf6);color:#140b2e">${esc(T('fpCounter'))}</button>
+            <button class="btn btn-coral" type="button" id="poisonCounterBtn">${esc(T('fpCounter'))}</button>
             <button class="btn btn-ghost" type="button" id="poisonAcceptBtn">${esc(T('fpAccept'))}</button>
           </div>
         </div>
@@ -1934,8 +2021,8 @@
       state.prank.sender = T('prankSenderDefault');
       state.prank.msg = T('prankMsgDefault');
       closeModal();
-      switchTab('prank');
       renderPrank();
+      scrollToId('prank');
       toast(T('toastPrankReady'));
       history.replaceState({}, '', location.pathname);
     });
@@ -2130,7 +2217,7 @@
   }
 
   const CJK_FONT = '"PingFang SC", "Hiragino Sans", "Apple SD Gothic Neo", "Microsoft YaHei", "Malgun Gothic", sans-serif';
-  const POSTER_LATIN = 'Inter, "Segoe UI", Arial, sans-serif';
+  const POSTER_LATIN = 'Nunito, "Segoe UI", Arial, sans-serif';
 
   function drawPoster(order) {
     const c = document.createElement('canvas');
@@ -2141,19 +2228,19 @@
     const H = c.height;
 
     const bg = ctx.createLinearGradient(0, 0, W, H);
-    bg.addColorStop(0, '#081422');
-    bg.addColorStop(0.55, '#050b14');
-    bg.addColorStop(1, '#04070d');
+    bg.addColorStop(0, '#FFF9F5');
+    bg.addColorStop(0.55, '#FFF1EC');
+    bg.addColorStop(1, '#FFE9E2');
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, W, H);
 
     const glow = ctx.createRadialGradient(W * 0.18, 0, 0, W * 0.18, 0, W * 0.82);
-    glow.addColorStop(0, 'rgba(34, 211, 238, 0.16)');
-    glow.addColorStop(1, 'rgba(34, 211, 238, 0)');
+    glow.addColorStop(0, 'rgba(242, 92, 84, 0.14)');
+    glow.addColorStop(1, 'rgba(242, 92, 84, 0)');
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, W, H);
 
-    ctx.strokeStyle = 'rgba(148, 163, 184, 0.055)';
+    ctx.strokeStyle = 'rgba(67, 48, 58, 0.06)';
     ctx.lineWidth = 1;
     for (let x = 0; x < W; x += 60) {
       ctx.beginPath();
@@ -2170,11 +2257,11 @@
 
     ctx.textBaseline = 'alphabetic';
 
-    ctx.fillStyle = '#67e8f9';
+    ctx.fillStyle = '#D8443D';
     ctx.font = `800 24px ${POSTER_LATIN}`;
     ctx.fillText('ANTI-CRAVE LAB', 72, 80);
 
-    ctx.fillStyle = '#7b8ca3';
+    ctx.fillStyle = '#9A7C84';
     ctx.font = `600 20px ${POSTER_LATIN}`;
     ctx.textAlign = 'right';
     ctx.fillText(
@@ -2184,15 +2271,15 @@
     );
     ctx.textAlign = 'left';
 
-    ctx.fillStyle = '#22d3ee';
+    ctx.fillStyle = '#F25C54';
     ctx.font = `900 132px ${POSTER_LATIN}`;
     ctx.fillText('Rx', 70, 226);
 
-    ctx.fillStyle = '#f1f7fd';
+    ctx.fillStyle = '#43303A';
     ctx.font = `900 42px ${POSTER_LATIN}, ${CJK_FONT}`;
     ctx.fillText(T('posterHeader'), 72, 286);
 
-    ctx.strokeStyle = 'rgba(34, 211, 238, 0.42)';
+    ctx.strokeStyle = 'rgba(242, 92, 84, 0.55)';
     ctx.lineWidth = 5;
     ctx.save();
     ctx.translate(862, 198);
@@ -2202,23 +2289,23 @@
     ctx.stroke();
     ctx.beginPath();
     ctx.arc(0, 0, 91, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(34, 211, 238, 0.22)';
+    ctx.strokeStyle = 'rgba(242, 92, 84, 0.25)';
     ctx.lineWidth = 2;
     ctx.stroke();
-    ctx.fillStyle = '#a5f3fc';
+    ctx.fillStyle = '#D8443D';
     ctx.font = `900 30px ${POSTER_LATIN}, ${CJK_FONT}`;
     ctx.textAlign = 'center';
     ctx.fillText(String(T('posterStamp')).slice(0, 10), 0, 10);
     ctx.restore();
 
-    ctx.strokeStyle = 'rgba(148, 163, 184, 0.22)';
+    ctx.strokeStyle = 'rgba(67, 48, 58, 0.18)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(72, 330);
     ctx.lineTo(W - 72, 330);
     ctx.stroke();
 
-    ctx.fillStyle = '#7b8ca3';
+    ctx.fillStyle = '#9A7C84';
     ctx.font = `700 20px ${POSTER_LATIN}, ${CJK_FONT}`;
     ctx.fillText(T('posterThisOrder'), 72, 386);
 
@@ -2238,20 +2325,20 @@
       const x = 72 + col * 480;
       const y = 410 + row * 162;
       roundRect(ctx, x, y, 456, 142, 18);
-      ctx.fillStyle = 'rgba(14, 25, 43, 0.86)';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.94)';
       ctx.fill();
-      ctx.strokeStyle = 'rgba(148, 163, 184, 0.18)';
+      ctx.strokeStyle = 'rgba(244, 218, 208, 0.9)';
       ctx.lineWidth = 1;
       ctx.stroke();
-      ctx.fillStyle = '#e8f3fa';
+      ctx.fillStyle = '#43303A';
       ctx.font = `800 46px ${POSTER_LATIN}, ${CJK_FONT}`;
       ctx.fillText(stat.value, x + 24, y + 76);
-      ctx.fillStyle = '#7f91a8';
+      ctx.fillStyle = '#9A7C84';
       ctx.font = `600 19px ${POSTER_LATIN}, ${CJK_FONT}`;
       ctx.fillText(stat.label, x + 24, y + 112);
     });
 
-    ctx.fillStyle = '#9fb0c4';
+    ctx.fillStyle = '#9A7C84';
     ctx.font = `600 24px ${POSTER_LATIN}, ${CJK_FONT}`;
     const blocked = order.names.slice(0, 3).join(' · ') + (order.names.length > 3 ? ' · …' : '');
     const blockedText = fmt(T('posterDefeated'), { name: blocked });
@@ -2262,14 +2349,14 @@
 
     const quoteY = 858;
     roundRect(ctx, 72, quoteY, W - 144, 192, 20);
-    ctx.fillStyle = 'rgba(10, 22, 30, 0.9)';
+    ctx.fillStyle = 'rgba(226, 243, 235, 0.9)';
     ctx.fill();
-    ctx.strokeStyle = 'rgba(52, 211, 153, 0.24)';
+    ctx.strokeStyle = 'rgba(111, 191, 154, 0.5)';
     ctx.stroke();
-    ctx.fillStyle = '#6ee7b7';
+    ctx.fillStyle = '#4F9E7C';
     ctx.font = `800 19px ${POSTER_LATIN}, ${CJK_FONT}`;
     ctx.fillText(T('posterQuoteLabel').toUpperCase(), 100, quoteY + 42);
-    ctx.fillStyle = '#dce8f2';
+    ctx.fillStyle = '#43303A';
     ctx.font = `600 31px ${POSTER_LATIN}, ${CJK_FONT}`;
     const advice = state.lastAdvice || T('posterDefaultAdvice');
     const qLines = wrapLines(ctx, advice, W - 200).slice(0, 3);
@@ -2283,24 +2370,24 @@
     ctx.fill();
     drawQRCode(ctx, `${APP_URL}?ref=poster`, qrX, qrY, qrSize);
 
-    ctx.fillStyle = '#e9f5fb';
+    ctx.fillStyle = '#43303A';
     ctx.font = `900 30px ${POSTER_LATIN}, ${CJK_FONT}`;
     const qrTitleLines = wrapLines(ctx, T('posterQrTitle'), 600).slice(0, 2);
     qrTitleLines.forEach((line, i) => ctx.fillText(line, 72, 1138 + i * 36));
-    ctx.fillStyle = '#8b9bb2';
+    ctx.fillStyle = '#9A7C84';
     ctx.font = `600 21px ${POSTER_LATIN}, ${CJK_FONT}`;
     const subLines = wrapLines(ctx, T('posterQrSub'), 620).slice(0, 3);
     subLines.forEach((line, i) => ctx.fillText(line, 72, 1222 + i * 30));
-    ctx.fillStyle = '#67e8f9';
+    ctx.fillStyle = '#D8443D';
     ctx.font = `700 20px ${POSTER_LATIN}, ${CJK_FONT}`;
     ctx.fillText(T('posterNoPills'), 72, 1318);
 
-    ctx.strokeStyle = 'rgba(148, 163, 184, 0.2)';
+    ctx.strokeStyle = 'rgba(67, 48, 58, 0.16)';
     ctx.beginPath();
     ctx.moveTo(72, 1358);
     ctx.lineTo(W - 72, 1358);
     ctx.stroke();
-    ctx.fillStyle = '#61718a';
+    ctx.fillStyle = '#B7A0A7';
     ctx.font = `600 18px ${POSTER_LATIN}`;
     ctx.fillText(`${ORIGIN.replace(/^https?:\/\//, '')}${CFG.path}`, 72, 1392);
     ctx.textAlign = 'right';
@@ -2469,7 +2556,7 @@
     const cell = size / total;
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(x, y, size, size);
-    ctx.fillStyle = '#071019';
+    ctx.fillStyle = '#43303A';
     for (let r = 0; r < n; r++) {
       for (let c = 0; c < n; c++) {
         if (mat[r][c]) {
@@ -2485,54 +2572,11 @@
   }
 
   /* ------------------------------------------------------------
-     Tabs, chrome, peek
+     Page navigation + peek
      ------------------------------------------------------------ */
-  function switchTab(tab) {
-    if (!['order', 'vote', 'prank'].includes(tab)) return;
-    if (state.challenge.active && tab !== 'vote') stopChallenge(false);
-    state.activeTab = tab;
-    $$('.view').forEach((view) => {
-      view.hidden = view.dataset.view !== tab;
-    });
-    $$('.nav-btn').forEach((btn) => btn.classList.toggle('is-active', btn.dataset.tab === tab));
-    if (tab === 'vote') {
-      if (!state.challenge.active) renderVote();
-    }
-    if (tab === 'prank') renderPrank();
-    updateCartVisibility();
-    if (window.scrollY > 80) {
-      const app = $('#app');
-      if (app) window.scrollTo({ top: Math.max(0, app.offsetTop - 10), behavior: 'smooth' });
-    }
-  }
-
-  function updateCartVisibility() {
-    const bar = $('#cartBar');
-    if (!bar) return;
-    bar.classList.toggle('is-hidden', state.activeTab !== 'order' || !chromeVisible());
-  }
-
-  function appInView() {
-    const app = $('#app');
-    if (!app) return true;
-    const rect = app.getBoundingClientRect();
-    return rect.bottom > 90 && rect.top < window.innerHeight - 40;
-  }
-
-  function readingSeo() {
-    const seo = document.querySelector('.seo');
-    if (!seo) return false;
-    return seo.getBoundingClientRect().top < window.innerHeight - 140;
-  }
-
-  function chromeVisible() {
-    return appInView() && !readingSeo();
-  }
-
-  function updateChrome() {
-    const nav = $('.bottom-nav');
-    if (nav) nav.classList.toggle('is-hidden', !chromeVisible());
-    updateCartVisibility();
+  function scrollToId(id) {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function bindPeek() {
@@ -2582,6 +2626,29 @@
     const year = $('#year');
     if (year) year.textContent = String(new Date().getFullYear());
 
+    try {
+      if (sessionStorage.getItem('anticrave:ticker') === '0') $('#ticker')?.remove();
+    } catch {
+      /* noop */
+    }
+    $('#tickerClose')?.addEventListener('click', () => {
+      $('#ticker')?.remove();
+      try {
+        sessionStorage.setItem('anticrave:ticker', '0');
+      } catch {
+        /* noop */
+      }
+    });
+
+    $('#headerStartBtn')?.addEventListener('click', () => scrollToId('menu'));
+    $('#heroStartBtn')?.addEventListener('click', () => scrollToId('menu'));
+    $('#heroSearchForm')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      scrollToId('menu');
+    });
+    $('#heroSearch')?.addEventListener('input', (e) => setSearch(e.target.value));
+    $('#dishSearch')?.addEventListener('input', (e) => setSearch(e.target.value));
+
     $('#checkinBtn')?.addEventListener('click', handleCheckin);
     $('#soundBtn')?.addEventListener('click', toggleSound);
     $('#danmakuBtn')?.addEventListener('click', toggleDanmaku);
@@ -2601,6 +2668,26 @@
 
     bindPeek();
     bindLangMenu();
+
+    const currencyBtn = $('#currencyBtn');
+    const currencyMenu = $('#currencyMenu');
+    currencyBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!currencyMenu) return;
+      currencyMenu.hidden = !currencyMenu.hidden;
+      currencyBtn.setAttribute('aria-expanded', String(!currencyMenu.hidden));
+    });
+    currencyMenu?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-currency]');
+      if (btn) setCurrency(btn.dataset.currency);
+    });
+    document.addEventListener('click', (e) => {
+      if (!currencyMenu || currencyMenu.hidden) return;
+      if (!e.target.closest('.currency-wrap')) {
+        currencyMenu.hidden = true;
+        currencyBtn?.setAttribute('aria-expanded', 'false');
+      }
+    });
 
     $('#levelTabs')?.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-level]');
@@ -2639,7 +2726,8 @@
       const prank = e.target.closest('[data-prank-dish]');
       if (prank) {
         state.prank.dish = prank.dataset.prankDish;
-        switchTab('prank');
+        renderPrank();
+        scrollToId('prank');
         toast(T('toastPrankReady'));
         return;
       }
@@ -2648,21 +2736,6 @@
         openFatigue(fatigue.dataset.fatigue);
       }
     });
-
-    $$('.nav-btn').forEach((btn) => {
-      btn.addEventListener('click', () => switchTab(btn.dataset.tab));
-    });
-
-    let scrollRaf = 0;
-    const onScroll = () => {
-      if (scrollRaf) return;
-      scrollRaf = requestAnimationFrame(() => {
-        scrollRaf = 0;
-        updateChrome();
-      });
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll, { passive: true });
 
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) refreshStats();
@@ -2676,13 +2749,15 @@
   async function init() {
     renderControls();
     bindGlobal();
+    updateCurrencyButton();
+    renderCategories();
     renderSavings();
     renderDishList();
     renderVoteHead();
+    renderVote();
     renderPrank();
     updatePulseText();
     updateCartUI();
-    updateChrome();
     startDanmakuLoop();
     parseIncomingPrank();
     preloadSources();

@@ -194,7 +194,7 @@ function buildSeo(code, strings) {
       </div>
     </header>
 
-    <section>
+    <section id="science">
       <h3>${esc(seo.galleryTitle)}</h3>
       <div class="seo-gallery">${gallery}</div>
     </section>
@@ -204,7 +204,7 @@ function buildSeo(code, strings) {
       <div class="science-grid">${science}</div>
     </section>
 
-    <section>
+    <section id="compare">
       <h3>${esc(seo.compareTitle)}</h3>
       <p class="compare-lede">${esc(seo.compareLede)}</p>
       <div class="compare-wrap">
@@ -217,12 +217,12 @@ function buildSeo(code, strings) {
       ${compareLink}
     </section>
 
-    <section>
+    <section id="how">
       <h3>${esc(seo.howTitle)}</h3>
       <div class="how-grid">${how}</div>
     </section>
 
-    <section>
+    <section id="faq">
       <h3>${esc(seo.faqTitle)}</h3>
       <div class="faq-list">${faqs}</div>
     </section>
@@ -448,6 +448,7 @@ function buildHomePage(code, template) {
     ogImage: `${SITE.origin}${SITE.ogImage}`,
     ogLocale: lang.ogLocale,
     langPath: lang.path,
+    currency: lang.currency,
     site: SITE,
     meta: strings.meta,
     ui: strings.ui,
@@ -504,6 +505,7 @@ function buildLandingPage(code, template) {
     },
     year: new Date().getFullYear(),
     ctaTry: landing.ctaTry,
+    brandKicker: strings.ui.brandKicker,
     alternateLandingPath: LANDINGS[altCode].path,
     alternateLang: HREFLANG[altCode],
     alternateLabel: LANDING_ALT_LABEL[altCode],
@@ -606,8 +608,8 @@ Sitemap: ${SITE.origin}/sitemap.xml
         description: STR.en.meta.description,
         start_url: '/',
         display: 'standalone',
-        background_color: '#05080f',
-        theme_color: '#05080f',
+        background_color: '#FFF1EC',
+        theme_color: '#FFF1EC',
         icons: [
           { src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
           { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
